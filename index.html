@@ -7,7 +7,12 @@
     <title>Dynamic Page Update</title>
     <script>
         function updatePageContent() {
-            fetch("http://guestydaysreal.pythonanywhere.com/super?pretty=true", { cache: "no-store" }) // Prevent caching
+            fetch("https://guestydaysreal.pythonanywhere.com/super?pretty=true", {
+                method: "GET", headers: {
+                    "Origin": "https://guestydaysreal.github.io/super", // Replace with your actual domain if needed
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            })
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
