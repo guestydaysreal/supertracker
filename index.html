@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Page Update</title>
+    <script>
+        function updatePageContent() {
+            fetch("https://guestydaysreal.pythonanywhere.com/super?pretty=true", { cache: "no-store" }) // Prevent caching
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    document.open();
+                    document.write(html);
+                    document.close();
+                })
+                .catch(error => {
+                    console.error("Error fetching data:", error);
+                    // Retry after a short delay
+                    setTimeout(updatePageContent, 5000);
+                });
+
+            // Set a random interval between 3 to 5 seconds
+            const nextUpdate = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+            setTimeout(updatePageContent, nextUpdate);
+        }
+
+        document.addEventListener("DOMContentLoaded", updatePageContent);
+    </script>
+</head>
+
+<body>
+    <h1>Loading...</h1>
+</body>
+
+</html>
