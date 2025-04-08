@@ -15,35 +15,40 @@
         gtag('config', 'G-47NJ5BWNCB');
     </script>
     <script>
-        function updatePageContent() {
-            fetch("https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true", {
-                method: "GET",
-                headers: {
-                    "X-Requested-With": "XMLHttpRequest" // Remove "Origin" - browser sets it automatically
+    function updatePageContent() {
+        fetch("https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true", {
+            method: "GET",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
+                return response.text();
             })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.text();
-                })
-                .then(html => {
-                    document.open();
-                    document.write(html);
-                    document.close();
-                })
-                .catch(error => {
-                    console.error("Error fetching data:", error);
-                });
+            .then(html => {
+                document.open();
+                document.write(html);
+                document.close();
 
-            // Only set the next update timer **once**
-            const nextUpdate = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
-            setTimeout(updatePageContent, nextUpdate);
-        }
+                // Schedule next update *after* successful update
+                const nextUpdate = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+                setTimeout(updatePageContent, nextUpdate);
+            })
+            .catch(error => {
+                console.error("Error fetching data:", error);
 
-        document.addEventListener("DOMContentLoaded", updatePageContent);
-    </script>
+                // Retry after a delay even if there was an error
+                const retryDelay = 5000; // fallback delay on failure
+                setTimeout(updatePageContent, retryDelay);
+            });
+    }
+
+    document.addEventListener("DOMContentLoaded", updatePageContent);
+</script>
+
 </head>
 
 <body>
