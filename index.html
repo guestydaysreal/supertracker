@@ -2,57 +2,93 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loading...</title>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-47NJ5BWNCB"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading...</title>
 
-        gtag('config', 'G-47NJ5BWNCB');
-    </script>
-    <script>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-47NJ5BWNCB"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-47NJ5BWNCB');
+  </script>
+
+  <style>
+    body {
+      background: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+
+    .waitroom-message {
+      font-size: 1.5em;
+      padding: 1em;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+
+  <script>
+    function showWaitroom(message) {
+      document.body.innerHTML = `<div class="waitroom-message">${message}</div>`;
+    }
+
     function updatePageContent() {
-        fetch("https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true", {
-            method: "GET",
-            headers: {
-                "X-Requested-With": "XMLHttpRequest"
-            }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.text();
-            })
-            .then(html => {
-                document.open();
-                document.write(html);
-                document.close();
+      fetch("https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true", {
+        method: "GET",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+        .then(response => {
+          const contentType = response.headers.get("content-type");
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
 
-                // Schedule next update *after* successful update
-                const nextUpdate = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
-                setTimeout(updatePageContent, nextUpdate);
-            })
-            .catch(error => {
-                console.error("Error fetching data:", error);
-
-                // Retry after a delay even if there was an error
-                const retryDelay = 5000; // fallback delay on failure
-                setTimeout(updatePageContent, retryDelay);
+          // Check if JSON (e.g. waitroom)
+          if (contentType && contentType.includes("application/json")) {
+            return response.json().then(data => {
+              if (data.waitroom) {
+                showWaitroom(data.message || "Too many users right now. Please wait...");
+                setTimeout(updatePageContent, 5000); // Retry in 5 sec
+              }
             });
+          }
+
+          // Otherwise, treat as HTML
+          return response.text().then(html => {
+            document.open();
+            document.write(html);
+            document.close();
+
+            // Schedule next update
+            const nextUpdate = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+            setTimeout(updatePageContent, nextUpdate);
+          });
+        })
+        .catch(error => {
+          console.error("Error fetching data:", error);
+          showWaitroom("Connection error. Retrying...");
+          setTimeout(updatePageContent, 5000); // Retry in 5 sec
+        });
     }
 
     document.addEventListener("DOMContentLoaded", updatePageContent);
-</script>
-
+  </script>
 </head>
 
 <body>
-    <h1>Loading...</h1>
+  <h1>Loading...</h1>
 </body>
 
 </html>
