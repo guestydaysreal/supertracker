@@ -26,6 +26,7 @@
       height: 100vh;
       margin: 0;
       text-align: center;
+      flex-direction: column;
     }
 
     .waitroom-message {
@@ -34,12 +35,60 @@
       background: rgba(255, 255, 255, 0.1);
       border-radius: 12px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      margin-bottom: 1em;
+    }
+
+    .donate-button {
+      background-color: #29abe0;
+      color: #fff;
+      padding: 0.7em 1.5em;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: background 0.3s;
+    }
+
+    .donate-button:hover {
+      background-color: #208fc0;
     }
   </style>
 
   <script>
     function showWaitroom(message) {
-      document.body.innerHTML = `<div class="waitroom-message">${message}</div>`;
+      const container = document.createElement("div");
+      container.innerHTML = `<div class="waitroom-message">${message}</div>`;
+      document.body.innerHTML = '';
+      document.body.appendChild(container);
+
+      showDonateButton(container, true); // 100% chance in waitroom
+    }
+
+    function showDonateButton(parent, force = false) {
+      let count = parseInt(localStorage.getItem("donateShowCount") || "0");
+      let shouldShow = false;
+
+      if (force) {
+        shouldShow = true;
+      } else if (count > 0) {
+        count--;
+        localStorage.setItem("donateShowCount", count);
+        shouldShow = true;
+      } else if (Math.random() < 0.05) {
+        localStorage.setItem("donateShowCount", 4); // show for 5 total times
+        shouldShow = true;
+      }
+
+      if (shouldShow) {
+        const btn = document.createElement("button");
+        btn.className = "donate-button";
+        btn.textContent = "☕ Support this project on Ko-fi";
+        btn.onclick = () => {
+          window.location.href = "https://guestydaysreal.github.io/donate";
+        };
+        parent.appendChild(btn);
+      }
     }
 
     function updatePageContent() {
@@ -55,23 +104,23 @@
             throw new Error(`HTTP error! Status: ${response.status}`);
           }
 
-          // Check if JSON (e.g. waitroom)
           if (contentType && contentType.includes("application/json")) {
             return response.json().then(data => {
               if (data.waitroom) {
                 showWaitroom(data.message || "Too many users right now. Please wait...");
-                setTimeout(updatePageContent, 5000); // Retry in 5 sec
+                setTimeout(updatePageContent, 5000);
               }
             });
           }
 
-          // Otherwise, treat as HTML
           return response.text().then(html => {
             document.open();
             document.write(html);
             document.close();
 
-            // Schedule next update
+            // Try showing the donate button in loaded content
+            showDonateButton(document.body, false);
+
             const nextUpdate = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
             setTimeout(updatePageContent, nextUpdate);
           });
@@ -79,7 +128,7 @@
         .catch(error => {
           console.error("Error fetching data:", error);
           showWaitroom("Connection error. Retrying...");
-          setTimeout(updatePageContent, 5000); // Retry in 5 sec
+          setTimeout(updatePageContent, 5000);
         });
     }
 
