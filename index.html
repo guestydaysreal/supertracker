@@ -48,6 +48,7 @@
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       transition: background 0.3s;
+      margin-top: 20px;
     }
 
     .donate-button:hover {
@@ -83,7 +84,7 @@
       if (shouldShow) {
         const btn = document.createElement("button");
         btn.className = "donate-button";
-        btn.textContent = "☕ Support this project on Ko-fi";
+        btn.textContent = "☕ Buy me a coffee!";
         btn.onclick = () => {
           window.location.href = "https://guestydaysreal.github.io/donate";
         };
