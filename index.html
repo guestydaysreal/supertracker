@@ -59,7 +59,7 @@
     }
   </style>
 
-  <script>
+ <script>
   const HTML_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true";
   const JSON_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&detail=true&image=true";
   const SEEN_KEY = "seenMobIds";
@@ -94,8 +94,7 @@
   function showNotification(mob, region, imageUrl) {
     new Notification(`${mob} spotted in ${region}`, {
       body: "Click to view",
-      icon: imageUrl,
-      image: imageUrl
+      icon: imageUrl
     });
   }
 
@@ -103,41 +102,24 @@
     fetch(JSON_API)
       .then(res => res.json())
       .then(data => {
-        console.log("[MOB CHECK] Checking for new mobs...");
-
-        // TEMP: Inject fake mob for testing
-        data["test_fake_id_12345"] = ["Test Mob", "Normal", "DebugLand", "just now", "https://via.placeholder.com/128"];
-
         let changed = false;
 
         for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
           if (!seenIds.has(id)) {
-            console.log(`[NEW MOB] ID: ${id} | ${mob} (${region})`);
             seenIds.add(id);
             changed = true;
 
-            if (getNotificationStatus()) {
-              if (Notification.permission === "granted") {
-                console.log("[NOTIFY] Sending notification for:", mob);
-                showNotification(mob, region, imageUrl);
-              } else {
-                console.warn("[NOTIFY] Permission not granted — cannot send.");
-              }
-            } else {
-              console.log("[NOTIFY] Notifications are disabled via toggle.");
+            if (getNotificationStatus() && Notification.permission === "granted") {
+              showNotification(mob, region, imageUrl);
             }
           }
         }
 
         if (changed) {
           localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
-        } else {
-          console.log("[MOB CHECK] No new mobs detected.");
         }
       })
-      .catch(err => {
-        console.error("[MOB CHECK] Error fetching JSON data:", err);
-      });
+      .catch(() => {});
   }
 
   function updatePageContent() {
@@ -145,7 +127,7 @@
       headers: { "X-Requested-With": "XMLHttpRequest" }
     })
       .then(response => {
-        if (!response.ok) throw new Error(`Status ${response.status}`);
+        if (!response.ok) throw new Error();
         const contentType = response.headers.get("content-type");
 
         if (contentType.includes("application/json")) {
@@ -163,14 +145,13 @@
           document.close();
 
           showDonateButton(document.body, false);
-          addNotificationToggle(); // Add toggle button
+          addNotificationToggle();
 
           const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
           setTimeout(updatePageContent, next);
         });
       })
-      .catch(err => {
-        console.error("Fetch error:", err);
+      .catch(() => {
         showWaitroom("Connection error. Retrying...");
         setTimeout(updatePageContent, 5000);
       });
@@ -202,13 +183,7 @@
       btn.textContent = enabled ? "🔔 Notifications On" : "🔕 Notifications Off";
 
       if (enabled && Notification.permission === "default") {
-        Notification.requestPermission().then(perm => {
-          if (perm === "granted") {
-            console.log("✅ Notifications permission granted.");
-          } else {
-            alert("Notifications blocked by browser.");
-          }
-        });
+        Notification.requestPermission();
       }
     };
 
@@ -219,21 +194,16 @@
     updatePageContent();
 
     if (Notification.permission === "default" && getNotificationStatus()) {
-      Notification.requestPermission().then(perm => {
-        console.log("Notification permission status:", perm);
-      });
+      Notification.requestPermission();
     }
 
     if (getNotificationStatus()) {
-      console.log("✅ Notification system is ENABLED.");
-    } else {
-      console.log("🔕 Notification system is DISABLED.");
+      setInterval(checkForNewMobs, 5000);
+      checkForNewMobs();
     }
-
-    setInterval(checkForNewMobs, 5000);
-    checkForNewMobs();
   });
 </script>
+
 
 
 </head>
