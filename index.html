@@ -60,9 +60,12 @@
   </style>
 
   <script>
-  const SEEN_IDS = new Set();
-  const JSON_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&detail=true&image=true";
   const HTML_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true";
+  const JSON_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&detail=true&image=true";
+  const SEEN_KEY = "seenMobIds";
+  const NOTIF_KEY = "notificationsEnabled";
+
+  let seenIds = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"));
 
   function showWaitroom(message) {
     const container = document.createElement("div");
@@ -76,24 +79,14 @@
     let count = parseInt(localStorage.getItem("donateShowCount") || "0");
     let shouldShow = false;
 
-    if (force) {
-      shouldShow = true;
-    } else if (count > 0) {
-      count--;
-      localStorage.setItem("donateShowCount", count);
-      shouldShow = true;
-    } else if (Math.random() < 0.05) {
-      localStorage.setItem("donateShowCount", 4);
-      shouldShow = true;
-    }
+    if (force || count > 0 || Math.random() < 0.05) {
+      if (!force && count === 0) localStorage.setItem("donateShowCount", 4);
+      else if (count > 0) localStorage.setItem("donateShowCount", count - 1);
 
-    if (shouldShow) {
       const btn = document.createElement("button");
       btn.className = "donate-button";
       btn.textContent = "☕ Buy me a coffee!";
-      btn.onclick = () => {
-        window.location.href = "https://guestydaysreal.github.io/donate";
-      };
+      btn.onclick = () => window.location.href = "https://guestydaysreal.github.io/donate";
       parent.appendChild(btn);
     }
   }
@@ -110,32 +103,34 @@
     fetch(JSON_API)
       .then(res => res.json())
       .then(data => {
+        let changed = false;
+
         for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
-          if (!SEEN_IDS.has(id)) {
-            SEEN_IDS.add(id);
-            showNotification(mob, region, imageUrl);
+          if (!seenIds.has(id)) {
+            seenIds.add(id);
+            changed = true;
+            if (Notification.permission === "granted" && getNotificationStatus()) {
+              showNotification(mob, region, imageUrl);
+            }
           }
         }
+
+        if (changed) {
+          localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
+        }
       })
-      .catch(err => {
-        console.error("Notification check failed:", err);
-      });
+      .catch(console.error);
   }
 
   function updatePageContent() {
     fetch(HTML_API, {
-      method: "GET",
-      headers: {
-        "X-Requested-With": "XMLHttpRequest"
-      }
+      headers: { "X-Requested-With": "XMLHttpRequest" }
     })
       .then(response => {
+        if (!response.ok) throw new Error(`Status ${response.status}`);
         const contentType = response.headers.get("content-type");
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
 
-        if (contentType && contentType.includes("application/json")) {
+        if (contentType.includes("application/json")) {
           return response.json().then(data => {
             if (data.waitroom) {
               showWaitroom(data.message || "Too many users right now. Please wait...");
@@ -150,33 +145,67 @@
           document.close();
 
           showDonateButton(document.body, false);
+          addNotificationToggle(); // Add toggle to page
 
-          const nextUpdate = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
-          setTimeout(updatePageContent, nextUpdate);
+          const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+          setTimeout(updatePageContent, next);
         });
       })
-      .catch(error => {
-        console.error("Error fetching data:", error);
+      .catch(err => {
+        console.error("Fetch error:", err);
         showWaitroom("Connection error. Retrying...");
         setTimeout(updatePageContent, 5000);
       });
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    if (Notification.permission === "default") {
-      Notification.requestPermission().then(permission => {
-        updatePageContent();
-        if (permission === "granted") {
-          setInterval(checkForNewMobs, 5000);
-          checkForNewMobs();
-        }
-      });
-    } else {
-      updatePageContent();
-      if (Notification.permission === "granted") {
-        setInterval(checkForNewMobs, 5000);
-        checkForNewMobs();
+  function getNotificationStatus() {
+    return localStorage.getItem(NOTIF_KEY) === "true";
+  }
+
+  function setNotificationStatus(status) {
+    localStorage.setItem(NOTIF_KEY, status ? "true" : "false");
+  }
+
+  function addNotificationToggle() {
+    if (document.getElementById("notif-toggle")) return;
+
+    const btn = document.createElement("button");
+    btn.id = "notif-toggle";
+    btn.style.position = "fixed";
+    btn.style.bottom = "10px";
+    btn.style.right = "10px";
+    btn.style.padding = "6px 12px";
+    btn.style.zIndex = "999";
+    btn.textContent = getNotificationStatus() ? "🔔 Notifications On" : "🔕 Notifications Off";
+
+    btn.onclick = () => {
+      const enabled = !getNotificationStatus();
+      setNotificationStatus(enabled);
+      btn.textContent = enabled ? "🔔 Notifications On" : "🔕 Notifications Off";
+
+      if (enabled && Notification.permission === "default") {
+        Notification.requestPermission().then(perm => {
+          if (perm === "granted") {
+            console.log("Notifications allowed.");
+          } else {
+            alert("Notifications blocked by browser.");
+          }
+        });
       }
+    };
+
+    document.body.appendChild(btn);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updatePageContent();
+    if (Notification.permission === "default" && getNotificationStatus()) {
+      Notification.requestPermission();
+    }
+
+    if (Notification.permission === "granted" && getNotificationStatus()) {
+      setInterval(checkForNewMobs, 5000);
+      checkForNewMobs();
     }
   });
 </script>
