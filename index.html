@@ -59,13 +59,40 @@
     }
   </style>
 
- <script>
+ <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging.js"></script>
+
+<script>
+  // Firebase Configuration
+  const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
+    projectId: "YOUR_FIREBASE_PROJECT_ID",
+    storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
+    appId: "YOUR_FIREBASE_APP_ID",
+    measurementId: "YOUR_FIREBASE_MEASUREMENT_ID"
+  };
+
+  // Initialize Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
+
   const HTML_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true";
   const JSON_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&detail=true&image=true";
   const SEEN_KEY = "seenMobIds";
   const NOTIF_KEY = "notificationsEnabled";
 
   let seenIds = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"));
+
+  // Service Worker Registration
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(registration) {
+      console.log("Service Worker registered with scope:", registration.scope);
+    }).catch(function(err) {
+      console.log("Service Worker registration failed:", err);
+    });
+  }
 
   function showWaitroom(message) {
     const container = document.createElement("div");
@@ -77,8 +104,6 @@
 
   function showDonateButton(parent, force = false) {
     let count = parseInt(localStorage.getItem("donateShowCount") || "0");
-    let shouldShow = false;
-
     if (force || count > 0 || Math.random() < 0.05) {
       if (!force && count === 0) localStorage.setItem("donateShowCount", 4);
       else if (count > 0) localStorage.setItem("donateShowCount", count - 1);
@@ -109,8 +134,9 @@
             seenIds.add(id);
             changed = true;
 
+            // Send FCM push notification when a new mob is spotted
             if (getNotificationStatus() && Notification.permission === "granted") {
-              showNotification(mob, region, imageUrl);
+              sendPushNotification(mob, region, imageUrl);
             }
           }
         }
@@ -190,6 +216,7 @@
     document.body.appendChild(btn);
   }
 
+  // Request permission for notifications
   document.addEventListener("DOMContentLoaded", () => {
     updatePageContent();
 
@@ -202,7 +229,40 @@
       checkForNewMobs();
     }
   });
+
+  // Send Push Notification via Firebase Cloud Messaging
+  function sendPushNotification(mob, region, imageUrl) {
+    messaging.getToken({ vapidKey: "BIT8Da25vmTPcJTMxv8gRvuY2bAcYDnpkXGXVzJRuoPgcuEzI6sk4msfkuU6o7YKRDAZn26l0WS-gZV0sBk1cGo" })
+      .then((currentToken) => {
+        if (currentToken) {
+          fetch('https://fcm.googleapis.com/fcm/send', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'key=YOUR_SERVER_KEY',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              to: currentToken,
+              notification: {
+                title: `${mob} spotted in ${region}`,
+                body: "Click to view",
+                icon: imageUrl
+              }
+            })
+          })
+          .then(response => response.json())
+          .then(data => console.log("Notification sent:", data))
+          .catch(error => console.error("Error sending notification:", error));
+        } else {
+          console.log("No FCM token available");
+        }
+      })
+      .catch((error) => {
+        console.error("Error getting token:", error);
+      });
+  }
 </script>
+
 
 
 
