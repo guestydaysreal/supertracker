@@ -85,14 +85,6 @@
 
   let seenIds = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"));
 
-  // Service Worker Registration
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/supertracker/firebase-messaging-sw.js').then(function(registration) {
-      console.log("Service Worker registered with scope:", registration.scope);
-    }).catch(function(err) {
-      console.log("Service Worker registration failed:", err);
-    });
-  }
 
   function showWaitroom(message) {
     const container = document.createElement("div");
@@ -231,33 +223,45 @@
   });
 
   // Send Push Notification via Firebase Cloud Messaging
- function sendPushNotification(mob, region, imageUrl) {
-  messaging.getToken({ vapidKey: "BIT8Da25vmTPcJTMxv8gRvuY2bAcYDnpkXGXVzJRuoPgcuEzI6sk4msfkuU6o7YKRDAZn26l0WS-gZV0sBk1cGo" })
-    .then((currentToken) => {
-      if (currentToken) {
-        fetch("https://guestydaysreal.pythonanywhere.com/push", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            token: currentToken,
-            title: `${mob} spotted in ${region}`,
-            body: "Click to view",
-            icon: imageUrl
-          })
-        })
-        .then(res => res.json())
-        .then(data => console.log("Push sent:", data))
-        .catch(err => console.error("Push error:", err));
-      } else {
-        console.log("No FCM token available");
-      }
-    })
-    .catch((error) => {
-      console.error("Error getting token:", error);
+ async function sendPushNotification(mob, region, imageUrl) {
+  try {
+    // Register Service Worker
+    const registration = await navigator.serviceWorker.register('/supertracker/firebase-messaging-sw.js');
+    console.log("Service Worker registered with scope:", registration.scope);
+
+    // Get FCM token with service worker registration
+    const currentToken = await messaging.getToken({
+      vapidKey: "BIT8Da25vmTPcJTMxv8gRvuY2bAcYDnpkXGXVzJRuoPgcuEzI6sk4msfkuU6o7YKRDAZn26l0WS-gZV0sBk1cGo",
+      serviceWorkerRegistration: registration
     });
+
+    if (currentToken) {
+      console.log("FCM Token:", currentToken);
+
+      // Send push notification
+      const response = await fetch("https://guestydaysreal.pythonanywhere.com/push", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          token: currentToken,
+          title: `${mob} spotted in ${region}`,
+          body: "Click to view",
+          icon: imageUrl
+        })
+      });
+
+      const data = await response.json();
+      console.log("Push sent:", data);
+    } else {
+      console.log("No FCM token available");
+    }
+  } catch (error) {
+    console.error("Error in push notification:", error);
+  }
 }
+
 </script>
 
 
