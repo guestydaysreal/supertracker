@@ -1,7 +1,8 @@
+// Import the Firebase libraries for service workers
 importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js');
 importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging.js');
 
-// Initialize Firebase in the service worker
+// Initialize Firebase with your configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAVz9R96cCA8OntoZQRUzo8B3ehs2a7vKU",
   authDomain: "gdrnotificationhandler.firebaseapp.com",
@@ -12,16 +13,17 @@ const firebaseConfig = {
   measurementId: "G-9EXZBVKC18"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
 // Retrieve an instance of Firebase Messaging
 const messaging = firebase.messaging();
 
-// Handle background notifications
+// Handle background push notifications
 messaging.onBackgroundMessage(function(payload) {
   console.log("Received background message ", payload);
 
-  // Customize notification here
+  // Customize notification
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
