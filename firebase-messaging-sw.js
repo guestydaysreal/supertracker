@@ -1,6 +1,6 @@
 // Import the Firebase libraries for service workers
-importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js');
-importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging.js');
+importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js');
 
 // Initialize Firebase with your configuration
 const firebaseConfig = {
