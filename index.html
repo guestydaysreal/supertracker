@@ -5,15 +5,15 @@
   <meta charset="UTF-8" />
   <meta property="og:title" content="GDR's Super Tracker" />
   <meta property="og:description" content="A tool used to view super mobs alive in the game florr.io, make sure to share it with everyone you know! (except in florrcord coz yes)" />
-  <meta property="og:url" content="https://guestydaysreal.github.io/supertracker" />
+  <meta property="og:url" content="https://guestydaysreal.github.io" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Loading...</title>
 
-  <!-- Google tag (gtag.js) -->
+  <!-- Google Tag Manager -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-47NJ5BWNCB"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
+    function gtag(){ dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'G-47NJ5BWNCB');
   </script>
@@ -31,7 +31,6 @@
       text-align: center;
       flex-direction: column;
     }
-
     .waitroom-message {
       font-size: 1.5em;
       padding: 1em;
@@ -40,7 +39,6 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
       margin-bottom: 1em;
     }
-
     .donate-button {
       background-color: #29abe0;
       color: #fff;
@@ -53,13 +51,12 @@
       transition: background 0.3s;
       margin-top: 20px;
     }
-
     .donate-button:hover {
       background-color: #208fc0;
     }
   </style>
 
-  <!-- Firebase SDK (compat versions for non-module usage) -->
+  <!-- Firebase SDK (compat versions) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js"></script>
 
@@ -79,7 +76,7 @@
     firebase.initializeApp(firebaseConfig);
     const messaging = firebase.messaging();
 
-    // Endpoints for your API
+    // API endpoints
     const HTML_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true";
     const JSON_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&detail=true&image=true";
     const SEEN_KEY = "seenMobIds";
@@ -142,20 +139,20 @@
       document.body.appendChild(btn);
     }
 
-    // Sends a push notification via your backend
+    // Function to send push notifications via your backend.
     async function sendPushNotification(mob, region, imageUrl) {
       try {
-        // Register service worker (using correct path for your "supertracker" repo)
-        const registration = await navigator.serviceWorker.register('/supertracker/firebase-messaging-sw.js');
+        // Register the service worker from root
+        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
         console.log("Service Worker registered with scope:", registration.scope);
 
-        // Get FCM token (ensuring we pass the registration object)
+        // Get FCM token using the registered service worker
         const currentToken = await messaging.getToken({
           vapidKey: "BIT8Da25vmTPcJTMxv8gRvuY2bAcYDnpkXGXVzJRuoPgcuEzI6sk4msfkuU6o7YKRDAZn26l0WS-gZV0sBk1cGo",
           serviceWorkerRegistration: registration
         });
         console.log("🔥 FCM Token:", currentToken);
-        window.DEBUG_FCM_TOKEN = currentToken; // for debugging
+        window.DEBUG_FCM_TOKEN = currentToken;
 
         if (!currentToken) {
           console.warn("No FCM token available.");
@@ -182,7 +179,7 @@
       }
     }
 
-    // Checks for new mobs and triggers push notifications
+    // Function to check for new mobs and trigger push notifications
     function checkForNewMobs() {
       fetch(JSON_API)
         .then(res => res.json())
@@ -199,7 +196,6 @@
               }
             }
           }
-
           if (changed) {
             localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
           }
@@ -207,12 +203,12 @@
         .catch(() => {});
     }
 
+    // Function to update the page content (using your HTML API)
     function updatePageContent() {
       fetch(HTML_API, { headers: { "X-Requested-With": "XMLHttpRequest" } })
         .then(response => {
           if (!response.ok) throw new Error();
           const contentType = response.headers.get("content-type");
-
           if (contentType.includes("application/json")) {
             return response.json().then(data => {
               if (data.waitroom) {
@@ -221,7 +217,6 @@
               }
             });
           }
-
           return response.text().then(html => {
             document.open();
             document.write(html);
@@ -238,6 +233,7 @@
         });
     }
 
+    // Set up event listener on DOMContentLoaded
     document.addEventListener("DOMContentLoaded", () => {
       updatePageContent();
 
