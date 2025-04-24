@@ -61,192 +61,205 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js"></script>
 
   <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyAVz9R96cCA8OntoZQRUzo8B3ehs2a7vKU",
-      authDomain: "gdrnotificationhandler.firebaseapp.com",
-      projectId: "gdrnotificationhandler",
-      storageBucket: "gdrnotificationhandler.appspot.com",
-      messagingSenderId: "77384173551",
-      appId: "1:77384173551:web:c19db532459fc62e45581a",
-      measurementId: "G-9EXZBVKC18"
-    };
+  // Firebase Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyAVz9R96cCA8OntoZQRUzo8B3ehs2a7vKU",
+    authDomain: "gdrnotificationhandler.firebaseapp.com",
+    projectId: "gdrnotificationhandler",
+    storageBucket: "gdrnotificationhandler.appspot.com",
+    messagingSenderId: "77384173551",
+    appId: "1:77384173551:web:c19db532459fc62e45581a",
+    measurementId: "G-9EXZBVKC18"
+  };
 
-    // Initialize Firebase and Messaging
-    firebase.initializeApp(firebaseConfig);
-    const messaging = firebase.messaging();
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
 
-    // API endpoints
-    const HTML_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true";
-    const JSON_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&detail=true&image=true";
-    const SEEN_KEY = "seenMobIds";
-    const NOTIF_KEY = "notificationsEnabled";
+  const HTML_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true";
+  const JSON_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&detail=true&image=true";
 
-    let seenIds = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"));
+  const SEEN_KEY = "seenMobIds";
+  const NOTIF_KEY = "notificationsEnabled";
+  const NOTIF_TYPE_KEY = "notificationType"; // 'fcm' or 'native'
 
-    function showWaitroom(message) {
-      const container = document.createElement("div");
-      container.innerHTML = `<div class="waitroom-message">${message}</div>`;
-      document.body.innerHTML = '';
-      document.body.appendChild(container);
-      showDonateButton(container, true);
-    }
+  let seenIds = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"));
 
-    function showDonateButton(parent, force = false) {
-      let count = parseInt(localStorage.getItem("donateShowCount") || "0");
-      if (force || count > 0 || Math.random() < 0.05) {
-        if (!force && count === 0) localStorage.setItem("donateShowCount", 4);
-        else if (count > 0) localStorage.setItem("donateShowCount", count - 1);
+  function showWaitroom(message) {
+    const container = document.createElement("div");
+    container.innerHTML = `<div class="waitroom-message">${message}</div>`;
+    document.body.innerHTML = '';
+    document.body.appendChild(container);
+    showDonateButton(container, true);
+  }
 
-        const btn = document.createElement("button");
-        btn.className = "donate-button";
-        btn.textContent = "☕ Buy me a coffee!";
-        btn.onclick = () => window.location.href = "https://guestydaysreal.github.io/donate";
-        parent.appendChild(btn);
-      }
-    }
-
-    function getNotificationStatus() {
-      return localStorage.getItem(NOTIF_KEY) === "true";
-    }
-
-    function setNotificationStatus(status) {
-      localStorage.setItem(NOTIF_KEY, status ? "true" : "false");
-    }
-
-    function addNotificationToggle() {
-      if (document.getElementById("notif-toggle")) return;
+  function showDonateButton(parent, force = false) {
+    let count = parseInt(localStorage.getItem("donateShowCount") || "0");
+    if (force || count > 0 || Math.random() < 0.05) {
+      if (!force && count === 0) localStorage.setItem("donateShowCount", 4);
+      else if (count > 0) localStorage.setItem("donateShowCount", count - 1);
 
       const btn = document.createElement("button");
-      btn.id = "notif-toggle";
-      btn.style.position = "fixed";
-      btn.style.bottom = "10px";
-      btn.style.right = "10px";
-      btn.style.padding = "6px 12px";
-      btn.style.zIndex = "999";
-      btn.textContent = getNotificationStatus() ? "🔔 Notifications On" : "🔕 Notifications Off";
+      btn.className = "donate-button";
+      btn.textContent = "☕ Buy me a coffee!";
+      btn.onclick = () => window.location.href = "https://guestydaysreal.github.io/donate";
+      parent.appendChild(btn);
+    }
+  }
 
-      btn.onclick = () => {
-        const enabled = !getNotificationStatus();
-        setNotificationStatus(enabled);
-        btn.textContent = enabled ? "🔔 Notifications On" : "🔕 Notifications Off";
+  function getNotificationStatus() {
+    return localStorage.getItem(NOTIF_KEY) === "true";
+  }
 
-        if (enabled && Notification.permission === "default") {
-          Notification.requestPermission();
-        }
-      };
+  function getNotificationType() {
+    return localStorage.getItem(NOTIF_TYPE_KEY) || "native";
+  }
 
-      document.body.appendChild(btn);
+  function setNotificationStatus(status) {
+    localStorage.setItem(NOTIF_KEY, status ? "true" : "false");
+  }
+
+  function setNotificationType(type) {
+    localStorage.setItem(NOTIF_TYPE_KEY, type);
+  }
+
+  function addNotificationToggle() {
+    if (document.getElementById("notif-toggle")) return;
+
+    const btn = document.createElement("button");
+    btn.id = "notif-toggle";
+    btn.style.position = "fixed";
+    btn.style.bottom = "10px";
+    btn.style.right = "10px";
+    btn.style.padding = "6px 12px";
+    btn.style.zIndex = "999";
+
+    function updateBtnText() {
+      const enabled = getNotificationStatus();
+      const type = getNotificationType();
+      btn.textContent = enabled
+        ? (type === "fcm" ? "🌌 Always Show Notifications (W.I.P)" : "🔔 Normal Notifications On")
+        : "🔕 Notifications Off";
     }
 
-    // Function to send push notifications via your backend.
-    async function sendPushNotification(mob, region, imageUrl) {
-      try {
-        // Register the service worker from root
-        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-        console.log("Service Worker registered with scope:", registration.scope);
+    btn.onclick = async () => {
+      const enabled = !getNotificationStatus();
+      setNotificationStatus(enabled);
 
-        // Get FCM token using the registered service worker
-        const currentToken = await messaging.getToken({
-          vapidKey: "BIT8Da25vmTPcJTMxv8gRvuY2bAcYDnpkXGXVzJRuoPgcuEzI6sk4msfkuU6o7YKRDAZn26l0WS-gZV0sBk1cGo",
-          serviceWorkerRegistration: registration
-        });
-        console.log("🔥 FCM Token:", currentToken);
-        window.DEBUG_FCM_TOKEN = currentToken;
-
-        if (!currentToken) {
-          console.warn("No FCM token available.");
-          return;
-        }
-
-        // Send push notification data to your PythonAnywhere backend
-        const response = await fetch("https://guestydaysreal.pythonanywhere.com/push", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            token: currentToken,
-            title: `${mob} spotted in ${region}`,
-            body: "Click to view",
-            icon: imageUrl
-          })
-        });
-
-        const result = await response.json();
-        console.log("Push response:", result);
-
-      } catch (error) {
-        console.error("Push error:", error);
+      if (enabled && Notification.permission === "default") {
+        await Notification.requestPermission();
       }
+
+      const current = getNotificationType();
+      const next = current === "fcm" ? "native" : "fcm";
+      setNotificationType(next);
+
+      updateBtnText();
+    };
+
+    updateBtnText();
+    document.body.appendChild(btn);
+  }
+
+  async function sendFirebasePush(mob, region, imageUrl) {
+    try {
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      const currentToken = await messaging.getToken({
+        vapidKey: "BIT8Da25vmTPcJTMxv8gRvuY2bAcYDnpkXGXVzJRuoPgcuEzI6sk4msfkuU6o7YKRDAZn26l0WS-gZV0sBk1cGo",
+        serviceWorkerRegistration: registration
+      });
+
+      if (!currentToken) return;
+
+      await fetch("https://guestydaysreal.pythonanywhere.com/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: currentToken,
+          title: `${mob} spotted in ${region}`,
+          body: "Click to view",
+          icon: imageUrl
+        })
+      });
+    } catch (err) {
+      console.error("FCM Push Error:", err);
     }
+  }
 
-    // Function to check for new mobs and trigger push notifications
-    function checkForNewMobs() {
-      fetch(JSON_API)
-        .then(res => res.json())
-        .then(data => {
-          let changed = false;
+  function sendNativeNotification(mob, region, imageUrl) {
+    if (Notification.permission === "granted") {
+      new Notification(`${mob} spotted in ${region}`, {
+        body: "Click to view",
+        icon: imageUrl
+      });
+    }
+  }
 
-          for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
-            if (!seenIds.has(id)) {
-              seenIds.add(id);
-              changed = true;
+  function checkForNewMobs() {
+    fetch(JSON_API)
+      .then(res => res.json())
+      .then(data => {
+        let changed = false;
+        for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
+          if (!seenIds.has(id)) {
+            seenIds.add(id);
+            changed = true;
 
-              if (getNotificationStatus() && Notification.permission === "granted") {
-                sendPushNotification(mob, region, imageUrl);
-              }
+            if (getNotificationStatus()) {
+              const type = getNotificationType();
+              if (type === "fcm") sendFirebasePush(mob, region, imageUrl);
+              else sendNativeNotification(mob, region, imageUrl);
             }
           }
-          if (changed) {
-            localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
-          }
-        })
-        .catch(() => {});
-    }
+        }
+        if (changed) {
+          localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
+        }
+      });
+  }
 
-    // Function to update the page content (using your HTML API)
-    function updatePageContent() {
-      fetch(HTML_API, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-        .then(response => {
-          if (!response.ok) throw new Error();
-          const contentType = response.headers.get("content-type");
-          if (contentType.includes("application/json")) {
-            return response.json().then(data => {
-              if (data.waitroom) {
-                showWaitroom(data.message || "Too many users right now. Please wait...");
-                setTimeout(updatePageContent, 5000);
-              }
-            });
-          }
-          return response.text().then(html => {
-            document.open();
-            document.write(html);
-            document.close();
-            showDonateButton(document.body, false);
-            addNotificationToggle();
-            const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
-            setTimeout(updatePageContent, next);
+  function updatePageContent() {
+    fetch(HTML_API, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(response => {
+        if (!response.ok) throw new Error();
+        const contentType = response.headers.get("content-type");
+        if (contentType.includes("application/json")) {
+          return response.json().then(data => {
+            if (data.waitroom) {
+              showWaitroom(data.message || "Too many users right now. Please wait...");
+              setTimeout(updatePageContent, 5000);
+            }
           });
-        })
-        .catch(() => {
-          showWaitroom("Connection error. Retrying...");
-          setTimeout(updatePageContent, 5000);
+        }
+        return response.text().then(html => {
+          document.open();
+          document.write(html);
+          document.close();
+          showDonateButton(document.body, false);
+          addNotificationToggle();
+          const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+          setTimeout(updatePageContent, next);
         });
+      })
+      .catch(() => {
+        showWaitroom("Connection error. Retrying...");
+        setTimeout(updatePageContent, 5000);
+      });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updatePageContent();
+
+    if (Notification.permission === "default" && getNotificationStatus()) {
+      Notification.requestPermission();
     }
 
-    // Set up event listener on DOMContentLoaded
-    document.addEventListener("DOMContentLoaded", () => {
-      updatePageContent();
+    if (getNotificationStatus()) {
+      setInterval(checkForNewMobs, 5000);
+      checkForNewMobs();
+    }
+  });
+</script>
 
-      if (Notification.permission === "default" && getNotificationStatus()) {
-        Notification.requestPermission();
-      }
-
-      if (getNotificationStatus()) {
-        setInterval(checkForNewMobs, 5000);
-        checkForNewMobs();
-      }
-    });
-  </script>
 </head>
 
 <body>
