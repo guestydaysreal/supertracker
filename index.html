@@ -134,27 +134,38 @@
     btn.style.zIndex = "999";
 
     function updateBtnText() {
-      const enabled = getNotificationStatus();
       const type = getNotificationType();
-      btn.textContent = enabled
-        ? (type === "fcm" ? "🌌 Always Show Notifications (W.I.P)" : "🔔 Normal Notifications On")
-        : "🔕 Notifications Off";
+      btn.textContent =
+        type === "native"
+          ? "🔔 Normal Notifications On"
+          : type === "fcm"
+          ? "🌌 Always Show Notifications (W.I.P)"
+          : "🔕 Notifications Off";
     }
 
+
     btn.onclick = async () => {
-      const enabled = !getNotificationStatus();
-      setNotificationStatus(enabled);
-
-      if (enabled && Notification.permission === "default") {
-        await Notification.requestPermission();
-      }
-
       const current = getNotificationType();
-      const next = current === "fcm" ? "native" : "fcm";
+    
+      let next;
+      if (current === "native") {
+        next = "fcm";
+        setNotificationStatus(true);
+      } else if (current === "fcm") {
+        next = "off";
+        setNotificationStatus(false);
+      } else {
+        next = "native";
+        setNotificationStatus(true);
+        if (Notification.permission === "default") {
+          await Notification.requestPermission();
+        }
+      }
+    
       setNotificationType(next);
-
       updateBtnText();
     };
+
 
     updateBtnText();
     document.body.appendChild(btn);
