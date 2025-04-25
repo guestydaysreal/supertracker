@@ -160,29 +160,39 @@
   }
 
   async function sendFirebasePush(mob, region, imageUrl) {
-    try {
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      const currentToken = await messaging.getToken({
-        vapidKey: "BIT8Da25vmTPcJTMxv8gRvuY2bAcYDnpkXGXVzJRuoPgcuEzI6sk4msfkuU6o7YKRDAZn26l0WS-gZV0sBk1cGo",
-        serviceWorkerRegistration: registration
-      });
+  try {
+    console.debug("[FCM] Registering service worker...");
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
 
-      if (!currentToken) return;
+    console.debug("[FCM] Getting token...");
+    const currentToken = await messaging.getToken({
+      vapidKey: "BIT8Da25vmTPcJTMxv8gRvuY2bAcYDnpkXGXVzJRuoPgcuEzI6sk4msfkuU6o7YKRDAZn26l0WS-gZV0sBk1cGo",
+      serviceWorkerRegistration: registration
+    });
 
-      await fetch("https://guestydaysreal.pythonanywhere.com/push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: currentToken,
-          title: `${mob} spotted in ${region}`,
-          body: "Click to view",
-          icon: imageUrl
-        })
-      });
-    } catch (err) {
-      console.error("FCM Push Error:", err);
+    if (!currentToken) {
+      console.warn("[FCM] No token received.");
+      return;
     }
+
+    console.debug("[FCM] Sending push to backend with token:", currentToken);
+    await fetch("https://guestydaysreal.pythonanywhere.com/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: currentToken,
+        title: `${mob} spotted in ${region}`,
+        body: "Click to view",
+        icon: imageUrl
+      })
+    });
+
+    console.debug("[FCM] Push sent!");
+  } catch (err) {
+    console.error("[FCM] Push error:", err);
   }
+}
+
 
   function showNativeNotification(mob, region, imageUrl) {
     if (Notification.permission === "granted") {
@@ -195,42 +205,57 @@
   }
 
   function pollForNativeNotifications() {
-    setInterval(() => {
-      if (getNotificationType() !== "native") return;
+  setInterval(() => {
+    const type = getNotificationType();
+    if (type !== "native") {
+      console.debug("[Native] Skipping check, current type is", type);
+      return;
+    }
 
-      fetch(JSON_API)
-        .then(res => res.json())
-        .then(data => {
-          for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
-            if (!seenIds.has(id)) {
-              seenIds.add(id);
-              showNativeNotification(mob, region, imageUrl);
-            }
+    console.debug("[Native] Polling JSON API...");
+    fetch(JSON_API)
+      .then(res => res.json())
+      .then(data => {
+        console.debug("[Native] Data received:", data);
+        for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
+          if (!seenIds.has(id)) {
+            console.debug(`[Native] New mob: ${mob} in ${region}`);
+            seenIds.add(id);
+            showNativeNotification(mob, region, imageUrl);
           }
-          localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
-        })
-        .catch(err => console.error("Native Poll Failed:", err));
-    }, 10000);
-  }
+        }
+        localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
+      })
+      .catch(err => console.error("[Native] Poll error:", err));
+  }, 10000);
+}
 
   function pushCheckFCM() {
-    setInterval(() => {
-      if (getNotificationType() !== "fcm") return;
+  setInterval(() => {
+    const type = getNotificationType();
+    if (type !== "fcm") {
+      console.debug("[FCM] Skipping check, current type is", type);
+      return;
+    }
 
-      fetch(JSON_API)
-        .then(res => res.json())
-        .then(data => {
-          for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
-            if (!seenIds.has(id)) {
-              seenIds.add(id);
-              sendFirebasePush(mob, region, imageUrl);
-            }
+    console.debug("[FCM] Polling JSON API...");
+    fetch(JSON_API)
+      .then(res => res.json())
+      .then(data => {
+        console.debug("[FCM] Data received:", data);
+        for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
+          if (!seenIds.has(id)) {
+            console.debug(`[FCM] New mob: ${mob} in ${region}`);
+            seenIds.add(id);
+            sendFirebasePush(mob, region, imageUrl);
           }
-          localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
-        })
-        .catch(err => console.error("FCM Poll Failed:", err));
-    }, 10000);
-  }
+        }
+        localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
+      })
+      .catch(err => console.error("[FCM] Poll error:", err));
+  }, 10000);
+}
+
 
   function updatePageContent() {
     fetch(HTML_API, { headers: { "X-Requested-With": "XMLHttpRequest" } })
@@ -271,6 +296,8 @@
     pollForNativeNotifications();
     pushCheckFCM();
   });
+    console.debug("🚀 SuperTracker Loaded — Current Notif Type:", getNotificationType());
+
 </script>
 
 </head>
