@@ -80,7 +80,7 @@
 
   const SEEN_KEY = "seenMobIds";
   const NOTIF_KEY = "notificationsEnabled";
-  const NOTIF_TYPE_KEY = "notificationType"; // 'fcm' or 'native'
+  const NOTIF_TYPE_KEY = "notificationType"; // 'native', 'fcm', or 'off'
 
   let seenIds = new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]"));
 
@@ -90,6 +90,7 @@
     document.body.innerHTML = '';
     document.body.appendChild(container);
     showDonateButton(container, true);
+    addNotificationToggle();
   }
 
   function showDonateButton(parent, force = false) {
@@ -106,16 +107,8 @@
     }
   }
 
-  function getNotificationStatus() {
-    return localStorage.getItem(NOTIF_KEY) === "true";
-  }
-
   function getNotificationType() {
     return localStorage.getItem(NOTIF_TYPE_KEY) || "native";
-  }
-
-  function setNotificationStatus(status) {
-    localStorage.setItem(NOTIF_KEY, status ? "true" : "false");
   }
 
   function setNotificationType(type) {
@@ -143,29 +136,24 @@
           : "🔕 Notifications Off";
     }
 
-
     btn.onclick = async () => {
       const current = getNotificationType();
-    
       let next;
+
       if (current === "native") {
         next = "fcm";
-        setNotificationStatus(true);
       } else if (current === "fcm") {
         next = "off";
-        setNotificationStatus(false);
       } else {
         next = "native";
-        setNotificationStatus(true);
         if (Notification.permission === "default") {
           await Notification.requestPermission();
         }
       }
-    
+
       setNotificationType(next);
       updateBtnText();
     };
-
 
     updateBtnText();
     document.body.appendChild(btn);
@@ -196,36 +184,52 @@
     }
   }
 
-  function sendNativeNotification(mob, region, imageUrl) {
+  function showNativeNotification(mob, region, imageUrl) {
     if (Notification.permission === "granted") {
       new Notification(`${mob} spotted in ${region}`, {
         body: "Click to view",
-        icon: imageUrl
+        icon: imageUrl,
+        image: imageUrl
       });
     }
   }
 
-  function checkForNewMobs() {
-    fetch(JSON_API)
-      .then(res => res.json())
-      .then(data => {
-        let changed = false;
-        for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
-          if (!seenIds.has(id)) {
-            seenIds.add(id);
-            changed = true;
+  function pollForNativeNotifications() {
+    setInterval(() => {
+      if (getNotificationType() !== "native") return;
 
-            if (getNotificationStatus()) {
-              const type = getNotificationType();
-              if (type === "fcm") sendFirebasePush(mob, region, imageUrl);
-              else sendNativeNotification(mob, region, imageUrl);
+      fetch(JSON_API)
+        .then(res => res.json())
+        .then(data => {
+          for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
+            if (!seenIds.has(id)) {
+              seenIds.add(id);
+              showNativeNotification(mob, region, imageUrl);
             }
           }
-        }
-        if (changed) {
           localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
-        }
-      });
+        })
+        .catch(err => console.error("Native Poll Failed:", err));
+    }, 10000);
+  }
+
+  function pushCheckFCM() {
+    setInterval(() => {
+      if (getNotificationType() !== "fcm") return;
+
+      fetch(JSON_API)
+        .then(res => res.json())
+        .then(data => {
+          for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
+            if (!seenIds.has(id)) {
+              seenIds.add(id);
+              sendFirebasePush(mob, region, imageUrl);
+            }
+          }
+          localStorage.setItem(SEEN_KEY, JSON.stringify([...seenIds]));
+        })
+        .catch(err => console.error("FCM Poll Failed:", err));
+    }, 10000);
   }
 
   function updatePageContent() {
@@ -257,17 +261,15 @@
       });
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
     updatePageContent();
 
-    if (Notification.permission === "default" && getNotificationStatus()) {
-      Notification.requestPermission();
+    if (Notification.permission === "default" && getNotificationType() !== "off") {
+      await Notification.requestPermission();
     }
 
-    if (getNotificationStatus()) {
-      setInterval(checkForNewMobs, 5000);
-      checkForNewMobs();
-    }
+    pollForNativeNotifications();
+    pushCheckFCM();
   });
 </script>
 
