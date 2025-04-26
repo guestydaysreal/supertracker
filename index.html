@@ -86,7 +86,7 @@
 
   function showWaitroom(message) {
     const container = document.createElement("div");
-    container.innerHTML = <div class="waitroom-message">${message}</div>;
+    container.innerHTML = "<div class="waitroom-message">${message}</div>";
     document.body.innerHTML = '';
     document.body.appendChild(container);
     showDonateButton(container, true);
