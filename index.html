@@ -257,33 +257,44 @@
 
 
   function updatePageContent() {
-    fetch(HTML_API, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-      .then(response => {
-        if (!response.ok) throw new Error();
-        const contentType = response.headers.get("content-type");
-        if (contentType.includes("application/json")) {
-          return response.json().then(data => {
-            if (data.waitroom) {
-              showWaitroom(data.message || "Too many users right now. Please wait...");
-              setTimeout(updatePageContent, 5000);
-            }
-          });
-        }
-        return response.text().then(html => {
-          document.open();
-          document.write(html);
-          document.close();
-          showDonateButton(document.body, false);
-          addNotificationToggle();
-          const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
-          setTimeout(updatePageContent, next);
+  fetch(HTML_API, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+    .then(response => {
+      if (!response.ok) throw new Error();
+      const contentType = response.headers.get("content-type");
+      if (contentType.includes("application/json")) {
+        return response.json().then(data => {
+          if (data.waitroom) {
+            showWaitroom(data.message || "Too many users right now. Please wait...");
+            setTimeout(updatePageContent, 5000);
+          }
         });
-      })
-      .catch(() => {
-        showWaitroom("Connection error. Retrying...");
-        setTimeout(updatePageContent, 5000);
+      }
+      return response.text().then(html => {
+        // Use a DOMParser to safely parse the full HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        const newBodyContent = doc.querySelector("body").innerHTML;
+
+        const mainContent = document.getElementById("main-content");
+        if (mainContent) {
+          // Only replace inside main-content
+          mainContent.innerHTML = newBodyContent;
+        }
+
+        showDonateButton(document.body, false);
+        addNotificationToggle();
+
+        const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+        setTimeout(updatePageContent, next);
       });
-  }
+    })
+    .catch(() => {
+      showWaitroom("Connection error. Retrying...");
+      setTimeout(updatePageContent, 5000);
+    });
+}
+
 
   document.addEventListener("DOMContentLoaded", async () => {
     updatePageContent();
@@ -302,7 +313,23 @@
 </head>
 
 <body>
-  <h1>Loading...</h1>
+  <!-- AdSense block -->
+  <div id="ad-container" style="margin: 10px;">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-xxxxxxxxxxxxxxxx"
+      crossorigin="anonymous"></script>
+    <ins class="adsbygoogle"
+      style="display:block; text-align:center;"
+      data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
+      data-ad-slot="xxxxxxxxxx"
+      data-ad-format="auto"
+      data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <!-- Main content that will be replaced -->
+  <div id="main-content">
+    <h1>Loading...</h1>
+  </div>
 </body>
 
 </html>
