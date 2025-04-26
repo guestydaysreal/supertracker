@@ -218,7 +218,7 @@
         console.debug("[Native] Data received:", data);
         for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
           if (!seenIds.has(id)) {
-            console.debug([Native] New mob: ${mob} in ${region});
+            console.debug("[Native] New mob: ${mob} in ${region}");
             seenIds.add(id);
             showNativeNotification(mob, region, imageUrl);
           }
