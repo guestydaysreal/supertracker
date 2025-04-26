@@ -86,7 +86,7 @@
 
   function showWaitroom(message) {
     const container = document.createElement("div");
-    container.innerHTML = `<div class="waitroom-message">${message}</div>`;
+    container.innerHTML = <div class="waitroom-message">${message}</div>;
     document.body.innerHTML = '';
     document.body.appendChild(container);
     showDonateButton(container, true);
@@ -181,7 +181,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         token: currentToken,
-        title: `${mob} spotted in ${region}`,
+        title: ${mob} spotted in ${region},
         body: "Click to view",
         icon: imageUrl
       })
@@ -196,7 +196,7 @@
 
   function showNativeNotification(mob, region, imageUrl) {
     if (Notification.permission === "granted") {
-      new Notification(`${mob} spotted in ${region}`, {
+      new Notification(${mob} spotted in ${region}, {
         body: "Click to view",
         icon: imageUrl
       });
@@ -218,7 +218,7 @@
         console.debug("[Native] Data received:", data);
         for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
           if (!seenIds.has(id)) {
-            console.debug(`[Native] New mob: ${mob} in ${region}`);
+            console.debug([Native] New mob: ${mob} in ${region});
             seenIds.add(id);
             showNativeNotification(mob, region, imageUrl);
           }
@@ -244,7 +244,7 @@
         console.debug("[FCM] Data received:", data);
         for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
           if (!seenIds.has(id)) {
-            console.debug(`[FCM] New mob: ${mob} in ${region}`);
+            console.debug([FCM] New mob: ${mob} in ${region});
             seenIds.add(id);
             sendFirebasePush(mob, region, imageUrl);
           }
@@ -257,44 +257,33 @@
 
 
   function updatePageContent() {
-  fetch(HTML_API, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-    .then(response => {
-      if (!response.ok) throw new Error();
-      const contentType = response.headers.get("content-type");
-      if (contentType.includes("application/json")) {
-        return response.json().then(data => {
-          if (data.waitroom) {
-            showWaitroom(data.message || "Too many users right now. Please wait...");
-            setTimeout(updatePageContent, 5000);
-          }
-        });
-      }
-      return response.text().then(html => {
-        // Use a DOMParser to safely parse the full HTML
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-
-        const newBodyContent = doc.querySelector("body").innerHTML;
-
-        const mainContent = document.getElementById("main-content");
-        if (mainContent) {
-          // Only replace inside main-content
-          mainContent.innerHTML = newBodyContent;
+    fetch(HTML_API, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(response => {
+        if (!response.ok) throw new Error();
+        const contentType = response.headers.get("content-type");
+        if (contentType.includes("application/json")) {
+          return response.json().then(data => {
+            if (data.waitroom) {
+              showWaitroom(data.message || "Too many users right now. Please wait...");
+              setTimeout(updatePageContent, 5000);
+            }
+          });
         }
-
-        showDonateButton(document.body, false);
-        addNotificationToggle();
-
-        const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
-        setTimeout(updatePageContent, next);
+        return response.text().then(html => {
+          document.open();
+          document.write(html);
+          document.close();
+          showDonateButton(document.body, false);
+          addNotificationToggle();
+          const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+          setTimeout(updatePageContent, next);
+        });
+      })
+      .catch(() => {
+        showWaitroom("Connection error. Retrying...");
+        setTimeout(updatePageContent, 5000);
       });
-    })
-    .catch(() => {
-      showWaitroom("Connection error. Retrying...");
-      setTimeout(updatePageContent, 5000);
-    });
-}
-
+  }
 
   document.addEventListener("DOMContentLoaded", async () => {
     updatePageContent();
@@ -313,23 +302,7 @@
 </head>
 
 <body>
-  <!-- AdSense block -->
-  <div id="ad-container" style="margin: 10px;">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-xxxxxxxxxxxxxxxx"
-      crossorigin="anonymous"></script>
-    <ins class="adsbygoogle"
-      style="display:block; text-align:center;"
-      data-ad-client="ca-pub-xxxxxxxxxxxxxxxx"
-      data-ad-slot="xxxxxxxxxx"
-      data-ad-format="auto"
-      data-full-width-responsive="true"></ins>
-    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-  </div>
-
-  <!-- Main content that will be replaced -->
-  <div id="main-content">
-    <h1>Loading...</h1>
-  </div>
+  <h1>Loading...</h1>
 </body>
 
 </html>
