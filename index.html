@@ -244,7 +244,7 @@
         console.debug("[FCM] Data received:", data);
         for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
           if (!seenIds.has(id)) {
-            console.debug([FCM] New mob: ${mob} in ${region});
+            console.debug("[FCM] New mob: ${mob} in ${region}");
             seenIds.add(id);
             sendFirebasePush(mob, region, imageUrl);
           }
