@@ -196,7 +196,7 @@
 
   function showNativeNotification(mob, region, imageUrl) {
     if (Notification.permission === "granted") {
-      new Notification(${mob} spotted in ${region}, {
+      new Notification('${mob} spotted in ${region}', {
         body: "Click to view",
         icon: imageUrl
       });
