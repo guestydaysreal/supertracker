@@ -75,8 +75,8 @@
   firebase.initializeApp(firebaseConfig);
   const messaging = firebase.messaging();
 
-  const HTML_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true";
-  const JSON_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&detail=true&image=true";
+  const HTML_API = "https://saving-regulation-velvet-spirits.trycloudflare.com//super?judgement=true&pretty=true";
+  const JSON_API = "https://saving-regulation-velvet-spirits.trycloudflare.com//super?judgement=true&detail=true&image=true";
 
   const SEEN_KEY = "seenMobIds";
   const NOTIF_KEY = "notificationsEnabled";
@@ -86,7 +86,7 @@
 
   function showWaitroom(message) {
     const container = document.createElement("div");
-    container.innerHTML = '<div class="waitroom-message">${message}</div>';
+    container.innerHTML = `<div class="waitroom-message">${message}</div>`;
     document.body.innerHTML = '';
     document.body.appendChild(container);
     showDonateButton(container, true);
@@ -181,7 +181,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         token: currentToken,
-        title: '${mob} spotted in ${region}',
+        title: `${mob} spotted in ${region}`,
         body: "Click to view",
         icon: imageUrl
       })
@@ -196,7 +196,7 @@
 
   function showNativeNotification(mob, region, imageUrl) {
     if (Notification.permission === "granted") {
-      new Notification('${mob} spotted in ${region}', {
+      new Notification(`${mob} spotted in ${region}`, {
         body: "Click to view",
         icon: imageUrl
       });
@@ -218,7 +218,7 @@
         console.debug("[Native] Data received:", data);
         for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
           if (!seenIds.has(id)) {
-            console.debug("[Native] New mob: ${mob} in ${region}");
+            console.debug(`[Native] New mob: ${mob} in ${region}`);
             seenIds.add(id);
             showNativeNotification(mob, region, imageUrl);
           }
@@ -244,7 +244,7 @@
         console.debug("[FCM] Data received:", data);
         for (const [id, [mob, , region, , imageUrl]] of Object.entries(data)) {
           if (!seenIds.has(id)) {
-            console.debug("[FCM] New mob: ${mob} in ${region}");
+            console.debug(`[FCM] New mob: ${mob} in ${region}`);
             seenIds.add(id);
             sendFirebasePush(mob, region, imageUrl);
           }
@@ -275,7 +275,7 @@
           document.close();
           showDonateButton(document.body, false);
           addNotificationToggle();
-          const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
+          const next = Math.floor(Math.random() * (15000 - 5000 + 1)) + 5000;
           setTimeout(updatePageContent, next);
         });
       })
