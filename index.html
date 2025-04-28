@@ -75,8 +75,8 @@
   firebase.initializeApp(firebaseConfig);
   const messaging = firebase.messaging();
 
-  const HTML_API = "https://brisbane-nu-ali-une.trycloudflare.com/super?judgement=true&pretty=true";
-  const JSON_API = "https://brisbane-nu-ali-une.trycloudflare.com/super?judgement=true&detail=true&image=true";
+  const HTML_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&pretty=true";
+  const JSON_API = "https://guestydaysreal.pythonanywhere.com/super?judgement=true&detail=true&image=true";
 
   const SEEN_KEY = "seenMobIds";
   const NOTIF_KEY = "notificationsEnabled";
@@ -275,7 +275,7 @@
           document.close();
           showDonateButton(document.body, false);
           addNotificationToggle();
-          const next = Math.floor(Math.random() * (15000 - 5000 + 1)) + 5000;
+          const next = Math.floor(Math.random() * (5000 - 3000 + 1)) + 3000;
           setTimeout(updatePageContent, next);
         });
       })
